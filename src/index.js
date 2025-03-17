@@ -1,6 +1,3 @@
-// require("dotenv").config();
-// import mongoose from "mongoose";
-// import {DATABASE_NAME} from "./constant.js";  
 import connectDB from "./db/index.db.js";
 import dotenv from "dotenv";
 import app from "./app.js";
@@ -9,15 +6,9 @@ dotenv.config({
     path: './env' // path to the .env file 
 })
 
-
-
-
 connectDB()
 .then(()=>{
     console.log("MongoDB Connected");
-
-
-
     app.on("error", (error)=>{
         console.log("Error: ", error);
         throw error;
