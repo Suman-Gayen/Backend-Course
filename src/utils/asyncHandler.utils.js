@@ -1,5 +1,5 @@
 const asyncHandler = (requestHandler) => { // requestHandler is the function that will be passed to the asyncHandler 
-  (req, res, next) => { // return a new function that takes the request, response, and next arguments 
+  return (req, res, next) => { // return a new function that takes the request, response, and next arguments 
     Promise.resolve(requestHandler(req, res, next)).catch((error) => // call the requestHandler function and pass the request and response to it if the requestHandler function returns a promise, resolve it and catch any errors that occur during the execution of the promise 
       next(error) // pass the error to the next middleware function 
     );
