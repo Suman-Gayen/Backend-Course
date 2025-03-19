@@ -32,13 +32,13 @@ const userSchema = new Schema(
     coverImg: {
       type: String, // cloudnary url
     },
-    watchHistory: {
-      type: Schema.Types.ObjectId,
-      ref: "video",
-    },
     password: {
       type: String,
       required: [true, "Password is required"],
+    },
+    watchHistory: {
+      type: Schema.Types.ObjectId,
+      ref: "video",
     },
     refreshToken: {
       type: String,
