@@ -74,10 +74,14 @@ userSchema.methods.generateAccessToken = function () {
   );
 };
 userSchema.methods.generateRefreshToken = function () {
-  return jwt.sign({ _id: this._id }, process.env.REFRESH_TOKEN_SECRET, {
+  return jwt.sign(
     // this method is used to generate a refresh token for the user. It takes the user's id as the payload and the refresh token secret as the secret key. It also specifies the expiry time of the refresh token. The expiry time is set in the .env file. The refresh token is used to generate a new access token when the access token expires. The refresh token is stored in the database. The refresh token is used to authenticate the user's requests to the server.
-    expiresIn: process.env.REFRESH_TOKEN_EXPIRY, // the expiry time of the refresh token is set in the .env file. It is used to specify the time after which the refresh token will expire. The default is 1 day.
-  });
+    { _id: this._id },
+    process.env.REFRESH_TOKEN_SECRET,
+    {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY, // the expiry time of the refresh token is set in the .env file. It is used to specify the time after which the refresh token will expire. The default is 1 day.
+    }
+  );
 };
 
 export const User = mongoose.model("user", userSchema);

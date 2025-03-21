@@ -13,7 +13,8 @@ const uploadOnCloudinary = async (localFilePath) => {
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto", // Automatically detect the type of the file and upload it.
     });
-    console.log("File Uploded Successfully", response.url);
+    // console.log("File Uploded Successfully", response.url);
+    fs.unlinkSync(localFilePath); // Delete the file after uploading it to Cloudinary to avoid memory leaks. The unlinkSync() method is used to delete the file from the file system. It takes the path to the file as an argument. The unlinkSync() method returns nothing. 
     return response;
   } catch (error) {
     fs.unwatchFile(localFilePath); // Unwatch the file after uploading it to Cloudinary to avoid memory leaks.
