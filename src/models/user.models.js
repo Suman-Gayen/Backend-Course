@@ -2,7 +2,7 @@ import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-const userSchema = new Schema(
+const userSchema = new mongoose.Schema(
   {
     userName: {
       type: String,
@@ -54,8 +54,9 @@ userSchema.pre("save", async function (next) {
   next(); // this is important to move to the next middleware or function in the chain of execution. It allows the code to continue executing the rest of the code after the current middleware or function has finished its execution.
 });
 
-userSchema.method.isValidPassord = async function (password) {
-  return await bcrypt.compare(password, this.password); // this method is used to compare the password entered by the user with the hashed password stored in the database. It returns a boolean value.
+userSchema.methods.comparePassword = async function (password) {
+  // this method is used to compare the password entered by the user with the password stored in the database. It takes the password entered by the user as the argument and returns a boolean value. If the password entered by the user matches the password stored in the database, then the method returns true. If the password entered by the user does not match the password stored in the database, then the method returns false.
+  return bcrypt.compare(password, this.password); // this.password is the password stored in the database. password is the password entered by the user.
 };
 
 userSchema.methods.generateAccessToken = function () {
@@ -84,4 +85,4 @@ userSchema.methods.generateRefreshToken = function () {
   );
 };
 
-export const User = mongoose.model("user", userSchema);
+export const User = mongoose.model("User", userSchema);

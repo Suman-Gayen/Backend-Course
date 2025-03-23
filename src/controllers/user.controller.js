@@ -3,6 +3,8 @@ import { ApiError } from "../utils/apiError.utils.js";
 import { User } from "../models/user.models.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.utils.js";
 import { ApiResponse } from "../utils/apiResponse.utils.js";
+import jwt from "jsonwebtoken";
+
 
 const generateAccessandRefressToken = async (userId) => {
   try {
@@ -24,9 +26,6 @@ const generateAccessandRefressToken = async (userId) => {
 
 const userResister = asyncHandler(async (req, res) => {
   const { userName, email, password, fulName } = req.body;
-  // console.log(userName, email, password, fulName, avatar, coverImg );
-  console.log(req.body);
-  console.log(req.files);
   // check userfields are empty or not --------------------------------------------------
 
   // if (!userName || !email || !password || !fulName || !avatar) {
@@ -46,7 +45,6 @@ const userResister = asyncHandler(async (req, res) => {
   }
 
   // check user already exists or not -----------------------------
-
   const userExist = await User.findOne({
     // The findOne() method is used to find a single document in a collection.
     $or: [{ userName: userName }, { email: email }], // The conditions are specified as key-value pairs in the array. In this case, the conditions are the userName and email fields. The findOne() method returns the first document that matches any of the conditions.
@@ -57,8 +55,6 @@ const userResister = asyncHandler(async (req, res) => {
   }
 
   // avtar and coverImg are required fields -----------------------------
-
-  console.log(req.files);
   const avtarLocalpath = req.files?.avatar[0]?.path; // The req.files property is an object that contains the uploaded files. The avatar field is an array of files. The first file in the array is the file that was uploaded. The path property of the file object is the path to the file on the server. The path property is used to save the file to the server.
   // const coverImgLocalpath = req.files?.coverImg[0]?.path;
   let coverImgLocalpath;
@@ -76,8 +72,6 @@ const userResister = asyncHandler(async (req, res) => {
       "Please provide avtar image fields that is required"
     );
   }
-  console.log(avtarLocalpath);
-
   // upload files to cloudinary ------------------------------------
   const avatarCloudinary = await uploadOnCloudinary(avtarLocalpath); // The uploadOnCloudinary() function is used to upload the avatar file to Cloudinary. The avtarLocalpath is the path to the avatar file on the server. The uploadOnCloudinary() function returns the response from Cloudinary after uploading the file. The response contains the URL of the uploaded file.
   const coverImgCloudinary = await uploadOnCloudinary(coverImgLocalpath);
@@ -117,6 +111,7 @@ const userResister = asyncHandler(async (req, res) => {
   );
 });
 
+
 const userLogin = asyncHandler(async (req, res) => {
   // req body -> data
   // check userfields are empty or not
@@ -128,25 +123,27 @@ const userLogin = asyncHandler(async (req, res) => {
   const { userName, email, password } = req.body;
 
   // userName and email is required ---------------
-  if (!userName || !email) {
+  if (!(userName || email)) {
     throw new ApiError(400, "userName or email is required");
   }
 
   // find user is exist?  ---------------------------
   const user = await User.findOne({
     // The findOne() method is used to find a single document in a collection. The conditions are specified as key-value pairs in the object. In this case, the conditions are the userName and email fields. The findOne() method returns the first document that matches the conditions. The result is stored in the user variable.
-    $or: [{ userName }, { email }],
+    // $or: [{ userName }, { email }],
+    $or: [{ userName: userName }, { email: email }],
   });
+
   if (!user) {
-    throw new ApiError(400, "user des not exist");
+    throw new ApiError(404, "user des not exist");
   }
 
-  // check password -----------------------
-  const passwordCheck = await user.isValidPassord(password);
-
-  if (!passwordCheck) {
-    throw new ApiError(401, "Invalid password");
+  // check password is correct or not -------------------------------
+  const isPasswordMatched = await user.comparePassword(password);
+  if (!isPasswordMatched) {
+    throw new ApiError(401, "Invalid credentials");
   }
+
   // generate access and refresh token -------------------------------
 
   const { accessToken, refreshToken } = await generateAccessandRefressToken(
@@ -161,7 +158,9 @@ const userLogin = asyncHandler(async (req, res) => {
 
   const options = {
     // The options object contains the options for the cookie. The options object contains the following properties: maxAge, httpOnly, and secure. The maxAge property is set to 7 days. The httpOnly property is set to true. The secure property is set to true. The options object is used to set the options for the cookie.
+
     httpOnly: true, // The httpOnly property is set to true. The httpOnly property is used to prevent client-side JavaScript from accessing the cookie.
+
     secure: true, // The secure property is set to true. The secure property is used to ensure that the cookie is only sent over HTTPS.
   };
 
@@ -169,18 +168,19 @@ const userLogin = asyncHandler(async (req, res) => {
     .status(200)
     .cookie("accessToken", accessToken, options) // The cookie() method is used to set a cookie in the response. The cookie() method takes three arguments: the name of the cookie, the value of the cookie, and the options for the cookie. In this case, the name of the cookie is accessToken, the value of the cookie is the access token, and the options for the cookie are specified in the options object. The cookie is set in the response.
     .cookie("refreshToken", refreshToken, options)
-    .json(
-      200,
-      {
+    .json({
+      status: 200,
+      data: {
         user: loggedInUser,
         accessToken,
         refreshToken,
       },
-      "User logIn successfuly"
-    );
+      message: "User logIn successfully",
+    });
 });
 
-const logoutUser = asyncHandler(async (req, res) => {
+
+const userLogout = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     // findByIdAndUpdate() method is used to find a document by its id and update it. The findByIdAndUpdate() method takes three arguments: the id of the document to update, the update object, and the options object. In this case, the id of the document to update is the id of the user. The update object is used to update the refreshToken field of the user object. The refreshToken field is set to undefined. The options object is used to specify the options for the update operation.
     req.user._id,
@@ -199,7 +199,57 @@ const logoutUser = asyncHandler(async (req, res) => {
     .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
-    .json(200, {}, "Now You logOut! Please login again");
+    .json({
+      status: 200,
+      data: {},
+      message: "Now You logOut! Please login again",
+    });
 });
 
-export default { userResister, userLogin, logoutUser };
+
+const refresnAccessToken = asyncHandler(async(req, res) => {
+  const incomingRefreshToken =req.cookies.refreshToken || req.body.refreshToken;
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "Refresh token is required");
+  }
+
+  try {
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    )
+    const user = await User.findById(decodedToken?._id);
+    if (!user) {
+      throw new ApiError(401, "Invalid refresh token");
+    }
+    if (user?.refreshToken !== incomingRefreshToken) {
+      throw new ApiError(401, "Invalid refresh token");
+    }
+  
+    const options ={
+      httpOnly: true,
+      secure: true
+    }
+    const { accessToken, newRefreshToken } = await generateAccessandRefressToken(user._id);
+    return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken",  newRefreshToken, options)
+    .json(
+      new ApiResponse (
+        200,
+        {
+          accessToken,
+          newRefreshToken
+        },
+        "Access token refreshed successfully"
+      )
+    )
+  } catch (error) {
+    throw new ApiError(401, error?.message || "Invalid refresh token");
+    
+  }
+
+
+})
+export { userResister, userLogin, userLogout, refresnAccessToken };
