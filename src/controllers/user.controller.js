@@ -54,7 +54,7 @@ const userResister = asyncHandler(async (req, res) => {
   }
 
   // avtar and coverImg are required fields -----------------------------
-  const avtarLocalpath = req.files?.avatar[0]?.path; // The req.files property is an object that contains the uploaded files. The avatar field is an array of files. The first file in the array is the file that was uploaded. The path property of the file object is the path to the file on the server. The path property is used to save the file to the server.
+  const avatarLocalpath = req.files?.avatar[0]?.path; // The req.files property is an object that contains the uploaded files. The avatar field is an array of files. The first file in the array is the file that was uploaded. The path property of the file object is the path to the file on the server. The path property is used to save the file to the server.
   // const coverImgLocalpath = req.files?.coverImg[0]?.path;
   let coverImgLocalpath;
   if (
@@ -65,14 +65,14 @@ const userResister = asyncHandler(async (req, res) => {
     coverImgLocalpath = req.files.coverImg[0].path; // The coverImg field is an array of files. The first file in the array is the file that was uploaded. The path property of the file object is the path to the file on the server. The path property is used to save the file to the server.
   }
 
-  if (!avtarLocalpath) {
+  if (!avatarLocalpath) {
     throw new ApiError(
       400,
       "Please provide avtar image fields that is required"
     );
   }
   // upload files to cloudinary ------------------------------------
-  const avatarCloudinary = await uploadOnCloudinary(avtarLocalpath); // The uploadOnCloudinary() function is used to upload the avatar file to Cloudinary. The avtarLocalpath is the path to the avatar file on the server. The uploadOnCloudinary() function returns the response from Cloudinary after uploading the file. The response contains the URL of the uploaded file.
+  const avatarCloudinary = await uploadOnCloudinary(coverImgLocalpath); // The uploadOnCloudinary() function is used to upload the avatar file to Cloudinary. The coverImgLocalpath is the path to the avatar file on the server. The uploadOnCloudinary() function returns the response from Cloudinary after uploading the file. The response contains the URL of the uploaded file.
   const coverImgCloudinary = await uploadOnCloudinary(coverImgLocalpath);
 
   if (!avatarCloudinary) {
@@ -223,12 +223,12 @@ const refresnAccessToken = asyncHandler(async (req, res) => {
     }
     console.log(user);
     // check refresh token is valid or not
-    if ( incomingRefreshToken!== user?.refreshToken ) {
+    if (incomingRefreshToken !== user?.refreshToken) {
       throw new ApiError(401, "Invalid refresh token");
     }
 
     // generate new access token and refresh token and send cookie to client side ------------------------------------
-    const options = { 
+    const options = {
       httpOnly: true,
       secure: true,
     };
@@ -252,4 +252,121 @@ const refresnAccessToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, error?.message || "Invalid refresh token");
   }
 });
-export { userResister, userLogin, userLogout, refresnAccessToken };
+
+const changePassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+
+  const user = await User.findById(req.user?._id);
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+  const isPasswordMatched = await user.comparePassword(oldPassword);
+  if (!isPasswordMatched) {
+    throw new ApiError(400, "Invalid old password");
+  }
+  user.password = newPassword; // The password field of the user object is set to the new password. The new password is the password entered by the user. The password field is used to store the password of the user. The password is stored in the database in hashed form. The password is hashed using the bcrypt library.
+  await user.save({ validateBeforeSave: false }); // The save() method is used to save the user object to the database. The validateBeforeSave option is set to false. The save() method returns a promise. The promise is awaited to save the user object to the database. The validateBeforeSave is false to skip schema validation when saving. If true, Mongoose validates all fields, potentially throwing errors if required fields or constraints are missing or invalid.
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"));
+});
+
+const getCurreuntUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(new ApiResponse(200, req.user, "current User found Successfuly"));
+});
+
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const { fulName, email, userName } = req.body;
+
+  if (!fulName || !email || !userName) {
+    throw new ApiError(400, "Please provide all the required fields");
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        // The $set operator is used to update the fields of the document.
+        fulName,
+        email,
+        userName,
+      },
+    },
+    {
+      new: true, // The new option is set to true. The new option is used to return the updated document. The updated document is stored in the user variable. The updated document contains the fields and values of the user object after the update operation.
+    }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "User updated successfully"));
+});
+
+const updateAvatar = asyncHandler(async (req, res) => {
+  const avatarLocalpath = req.file?.path;
+
+  if (!avatarLocalpath) {
+    throw new ApiError(400, " Avtar file is missing ");
+  }
+  const avatar = await uploadOnCloudinary(avatarLocalpath);
+  if (!avatar.url) {
+    throw new ApiError(400, " Error while uploading on avatar ");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        avatar: avatar.url,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select(" -password ");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "avatar updated successfully"));
+});
+
+const updateCoverImg = asyncHandler(async (req, res) => {
+  const coverImgLocalpath = req.file?.path;
+
+  if (!coverImgLocalpath) {
+    throw new ApiError(400, " Avtar file is missing ");
+  }
+  const coverImg = await uploadOnCloudinary(coverImgLocalpath);
+  if (!coverImg.url) {
+    throw new ApiError(400, " Error while uploading on coverImg ");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        coverImg: coverImg.url,
+      },
+    },
+    {
+      new: true,
+    }
+  ).select(" -password ");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "coverImg updated successfully"));
+});
+export {
+  userResister,
+  userLogin,
+  userLogout,
+  refresnAccessToken,
+  changePassword,
+  getCurreuntUser,
+  updateUserProfile,
+  updateAvatar,
+  updateCoverImg,
+};
