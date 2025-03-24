@@ -359,6 +359,81 @@ const updateCoverImg = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, user, "coverImg updated successfully"));
 });
+
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+  const { username } = req.params; // The username variable is used to store the username of the channel. The username is passed as a parameter in the URL. The username is used to find the channel in the database. The username is used to find the channel in the database because the username is unique for each channel.
+  if (!username) {
+    throw new ApiError(400, "username is missing");
+  }
+
+  const channel = await User.aggregate([
+    // The aggregate() method is used to perform aggregation operations on the collection. The aggregate() method takes an array of stages as an argument. The stages are used to perform different operations on the documents. In this case, the stages are used to filter, join, and add fields to the documents. The result is stored in the channel variable.
+    {
+      $match: {
+        // The match stage is used to filter the documents. The match stage takes an object as an argument. The object contains the conditions to filter the documents.
+        username: username?.toLowerCase(),
+      },
+    },
+    {
+      $lookup: {
+        // The lookup stage is used to join collections. The lookup stage takes an object as an argument. The object contains the fields to join the collections.
+        from: "subscriptions", // The from field is used to specify the collection to join. In this case, the from field is set to subscriptions. The subscriptions collection is joined with the users collection.
+        localField: "_id", // The localField field is used to specify the field in the users collection to join with the subscriptions collection. In this case, the localField field is set to _id. The _id field of the users collection is joined with the subscriber field of the subscriptions collection.
+        foreignField: "channel", // The foreignField field is used to specify the field in the subscriptions collection to join with the users collection. In this case, the foreignField field is set to channel. The channel field of the subscriptions collection is joined with the _id field of the users collection.
+        as: "subscribers", // The as field is used to specify the name of the field to store the joined documents. In this case, the as field is set to subscribers. The joined documents are stored in the subscribers field of the users collection.
+      },
+    },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "subscribedTo",
+      },
+    },
+    {
+      $addFields: {
+        // The addFields stage is used to add new fields to the documents. The addFields stage takes an object as an argument. The object contains the fields to add to the documents.
+        subscribersCount: {
+          $size: "$subscribers", // The $size operator is used to get the size of an array. The $size operator takes the field as an argument. In this case, the field is the subscribers field of the users collection. The size of the subscribers array is stored in the subscribersCount field of the users collection.
+        },
+        subscribedToCount: {
+          $size: "$subscribedTo",
+        },
+        isSubscribed: {
+          $cond: {
+            // The $cond operator is used to conditionally return a value. The $cond operator takes an object as an argument. The object contains the conditions and values to return.
+            if: { $in: [req.user?._id, "$subscribers.subscriber"] }, // The $in operator is used to check if a value is in an array. The $in operator takes two arguments: the value to check and the array to check against. In this case, the value to check is the user id of the logged-in user. The array to check against is the subscribers array of the users collection. The $in operator returns true if the value is in the array, otherwise it returns false. The result is stored in the isSubscribed field of the users collection.
+            then: true, // The then field is used to specify the value to return if the condition is true. In this case, the then field is set to true. The value true is returned if the user is subscribed to the channel.
+            else: false, // The else field is used to specify the value to return if the condition is false. In this case, the else field is set to false. The value false is returned if the user is not subscribed to the channel.
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        // The project stage is used to include or exclude fields from the documents. The project stage takes an object as an argument. The object contains the fields to include or exclude.
+        fulName: 1,
+        username: 1,
+        subscribersCount: 1,
+        subscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImg: 1,
+      },
+    },
+  ]);
+  console.log(channel);
+
+  if (!channel.length) {
+    throw new ApiError(400, "channel does not exists");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, channel[0], "User channel fatched sccessfuly"));
+});
+
 export {
   userResister,
   userLogin,
@@ -369,4 +444,5 @@ export {
   updateUserProfile,
   updateAvatar,
   updateCoverImg,
+  getUserChannelProfile,
 };
