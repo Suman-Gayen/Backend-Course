@@ -5,7 +5,6 @@ import { uploadOnCloudinary } from "../utils/cloudinary.utils.js";
 import { ApiResponse } from "../utils/apiResponse.utils.js";
 import jwt from "jsonwebtoken";
 
-
 const generateAccessandRefressToken = async (userId) => {
   try {
     const user = await User.findById(userId); // The findById() method is used to find a document by its id. The user id is passed as an argument to the findById() method. The result is stored in the user variable.
@@ -111,7 +110,6 @@ const userResister = asyncHandler(async (req, res) => {
   );
 });
 
-
 const userLogin = asyncHandler(async (req, res) => {
   // req body -> data
   // check userfields are empty or not
@@ -179,7 +177,6 @@ const userLogin = asyncHandler(async (req, res) => {
     });
 });
 
-
 const userLogout = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     // findByIdAndUpdate() method is used to find a document by its id and update it. The findByIdAndUpdate() method takes three arguments: the id of the document to update, the update object, and the options object. In this case, the id of the document to update is the id of the user. The update object is used to update the refreshToken field of the user object. The refreshToken field is set to undefined. The options object is used to specify the options for the update operation.
@@ -206,50 +203,53 @@ const userLogout = asyncHandler(async (req, res) => {
     });
 });
 
-
-const refresnAccessToken = asyncHandler(async(req, res) => {
-  const incomingRefreshToken =req.cookies.refreshToken || req.body.refreshToken;
+const refresnAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken =
+    req.cookies.refreshToken || req.body.refreshToken; // The incomingRefreshToken variable is used to store the refresh token. The refresh token is stored in the cookies. The refresh token is stored in the cookies because the refresh token is used to generate the access token. The refresh token is used to generate the access token because the access token is used to authenticate the user.
   if (!incomingRefreshToken) {
     throw new ApiError(401, "Refresh token is required");
   }
 
   try {
     const decodedToken = jwt.verify(
+      // The decodedToken variable is used to store the decoded token. The decoded token is used to verify the refresh token. The decoded token is used to verify the refresh token because the refresh token is used to generate the access token.
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET
-    )
+    );
+    console.log(decodedToken);
     const user = await User.findById(decodedToken?._id);
     if (!user) {
       throw new ApiError(401, "Invalid refresh token");
     }
-    if (user?.refreshToken !== incomingRefreshToken) {
+    console.log(user);
+    // check refresh token is valid or not
+    if ( incomingRefreshToken!== user?.refreshToken ) {
       throw new ApiError(401, "Invalid refresh token");
     }
-  
-    const options ={
+
+    // generate new access token and refresh token and send cookie to client side ------------------------------------
+    const options = { 
       httpOnly: true,
-      secure: true
-    }
-    const { accessToken, newRefreshToken } = await generateAccessandRefressToken(user._id);
+      secure: true,
+    };
+    const { accessToken, newRefreshToken } =
+      await generateAccessandRefressToken(user._id);
     return res
-    .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken",  newRefreshToken, options)
-    .json(
-      new ApiResponse (
-        200,
-        {
-          accessToken,
-          newRefreshToken
-        },
-        "Access token refreshed successfully"
-      )
-    )
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", newRefreshToken, options)
+      .json(
+        new ApiResponse(
+          200,
+          {
+            accessToken,
+            newRefreshToken,
+          },
+          "Access token refreshed successfully"
+        )
+      );
   } catch (error) {
     throw new ApiError(401, error?.message || "Invalid refresh token");
-    
   }
-
-
-})
+});
 export { userResister, userLogin, userLogout, refresnAccessToken };

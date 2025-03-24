@@ -3,8 +3,9 @@ import {ApiError} from '../utils/apiError.utils.js';
 import asyncHandler from '../utils/asyncHandler.utils.js';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/user.models.js';
-export const verifyJWT = asyncHandler(async (req, _, next) => {
 
+
+export const verifyJWT = asyncHandler(async (req, _, next) => {
     try {
         const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", ""); // get the token from the request header or cookie if it exists. The token is usually sent in the Authorization header as a Bearer token. The Bearer token is a type of access token that is sent along with the request to authenticate the user. The token is used to verify the identity of the user and grant access to the requested resource. 
     
