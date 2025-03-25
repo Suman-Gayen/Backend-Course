@@ -362,7 +362,6 @@ const updateCoverImg = asyncHandler(async (req, res) => {
 });
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
-  
   const { username } = req.params; // The username variable is used to store the username of the channel. The username is passed as a parameter in the URL. The username is used to find the channel in the database. The username is used to find the channel in the database because the username is unique for each channel.
   if (!username) {
     throw new ApiError(400, "username is missing");
@@ -440,7 +439,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
       $match: {
-        _id: new mongoose.Types.ObjectId(req.user._id),
+        _id: mongoose.Types.ObjectId(req.user._id), // The match stage is used to filter the documents. The match stage takes an object as an argument. The object contains the conditions to filter the documents. In this case, the condition is the user id of the logged-in user. The user id is passed as a parameter in the URL. The user id is used to find the user in the database. The user id is used to find the user in the database because the user id is unique for each user.
       },
     },
     {
@@ -450,6 +449,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         foreignField: "_id",
         as: "watchHistory",
         pipeline: [
+          // The pipeline field is used to specify the stages of the aggregation pipeline. The stages are used to perform different operations on the documents. In this case, the stages are used to filter, join, and add fields to the documents. The result is stored in the watchHistory field of the users collection.
           {
             $lookup: {
               from: "users",
@@ -469,8 +469,9 @@ const getWatchHistory = asyncHandler(async (req, res) => {
           },
           {
             $addFields: {
+              // The addFields stage is used to add new fields to the documents. The addFields stage takes an object as an argument. The object contains the fields to add to the documents.
               owner: {
-                $first: "$owner",
+                $first: "$owner", // The $first operator is used to get the first element of an array. The $first operator takes the field as an argument. In this case, the field is the owner field of the videos collection. The first element of the owner array is stored in the owner field of the videos collection.
               },
             },
           },
