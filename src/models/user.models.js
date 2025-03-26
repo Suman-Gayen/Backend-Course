@@ -61,7 +61,7 @@ userSchema.methods.comparePassword = async function (password) {
 
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
-    // this method is used to generate an access token for the user. It takes the user's id, email, username, and full name as the payload and the access token secret as the secret key. It also specifies the expiry time of the access token. The expiry time is set in the .env file. The access token is used to authenticate the user's requests to the server.  The access token is stored in the client's local storage or session storage. The access token is used to authenticate the user's requests to the server.  The access token is stored in the client's local storage or session storage.
+    // this method is used to generate an access token for the user. It takes the user's id, email, username, and full name as the payload and the access token secret as the secret key. It also specifies the expiry time of the access token. The expiry time is set in the .env file. The access token is used to authenticate the user's requests to the server.  The access token is stored in the client's local storage or session storage.
     {
       _id: this._id, // the user's id is used as the payload of the access token. It is used to identify the user.
       email: this.email, // the user's email is used as the payload of the access token. It is used to identify the user.

@@ -3,7 +3,7 @@ import {
   userResister,
   userLogin,
   userLogout,
-  refresnAccessToken,
+  refreshAccessToken,
   changePassword,
   getCurreuntUser,
   updateUserProfile,
@@ -31,24 +31,24 @@ userRoute.route("/resister").post(
   ]),
   userResister
 );
-userRoute.route("/login").post(userLogin);
+userRoute.route("/login").post(userLogin); // 👌
 
-userRoute.route("/logout").post(verifyJWT, userLogout);
+userRoute.route("/logout").post(verifyJWT, userLogout); //👌
 
-userRoute.route("/refresh-token").post(refresnAccessToken);
+userRoute.route("/refresh-token").post(refreshAccessToken); //👌
 
-userRoute.route("/change-password").post(verifyJWT, changePassword);
+userRoute.route("/change-password").post(verifyJWT, changePassword); //👌
 
-userRoute.route("/me").get(verifyJWT, getCurreuntUser);
+userRoute.route("/me").get(verifyJWT, getCurreuntUser); //👌
 
-userRoute.route("/update-profile").patch(verifyJWT, updateUserProfile);
+userRoute.route("/update-profile").patch(verifyJWT, updateUserProfile); //👌
 
-userRoute.route("/update-avatar").patch(verifyJWT, upload.single("avatar"), updateAvatar);
+userRoute.route("/update-avatar").patch(verifyJWT, upload.single("avatar"), updateAvatar); //👌
 
-userRoute.route("/update-coverImg").patch(verifyJWT, upload.single("coverImg"), updateCoverImg);
+userRoute.route("/update-coverImg").patch(verifyJWT, upload.single("coverImg"), updateCoverImg);   //👌
 
 userRoute.route("/c/:username").get(verifyJWT, getUserChannelProfile);
 
-userRoute.route("/history").get(verifyJWT, getWatchHistory);
+userRoute.route("/history").get(verifyJWT, getWatchHistory); //👌
 
 export default userRoute;

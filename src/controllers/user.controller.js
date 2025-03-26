@@ -56,7 +56,7 @@ const userResister = asyncHandler(async (req, res) => {
 
   // avtar and coverImg are required fields -----------------------------
   const avatarLocalpath = req.files?.avatar[0]?.path; // The req.files property is an object that contains the uploaded files. The avatar field is an array of files. The first file in the array is the file that was uploaded. The path property of the file object is the path to the file on the server. The path property is used to save the file to the server.
-  // const coverImgLocalpath = req.files?.coverImg[0]?.path;
+
   let coverImgLocalpath;
   if (
     req.files &&
@@ -73,7 +73,7 @@ const userResister = asyncHandler(async (req, res) => {
     );
   }
   // upload files to cloudinary ------------------------------------
-  const avatarCloudinary = await uploadOnCloudinary(coverImgLocalpath); // The uploadOnCloudinary() function is used to upload the avatar file to Cloudinary. The coverImgLocalpath is the path to the avatar file on the server. The uploadOnCloudinary() function returns the response from Cloudinary after uploading the file. The response contains the URL of the uploaded file.
+  const avatarCloudinary = await uploadOnCloudinary(avatarLocalpath); // The uploadOnCloudinary() function is used to upload the avatar file to Cloudinary. The coverImgLocalpath is the path to the avatar file on the server. The uploadOnCloudinary() function returns the response from Cloudinary after uploading the file. The response contains the URL of the uploaded file.
   const coverImgCloudinary = await uploadOnCloudinary(coverImgLocalpath);
 
   if (!avatarCloudinary) {
@@ -96,10 +96,9 @@ const userResister = asyncHandler(async (req, res) => {
   });
 
   // check user created or not ------------------------------------
-  const createUser = await User.findById(user._id)
-    .select // The findById() method is used to find a document by its id. The select() method is used to specify which fields to include or exclude in the result. In this case, the password and refreshToken fields are excluded from the result. The result is stored in the createUser variable.
-    // "-password -refreshToken"
-    ();
+  const createUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  ); // The findById() method is used to find a document by its id. The select() method is used to specify which fields to include or exclude in the result. In this case, the password and refreshToken fields are excluded from the result. The result is stored in the createUser variable.
   if (!createUser) {
     throw new ApiError(500, "something went wrong while resistering the user");
   }
@@ -204,13 +203,13 @@ const userLogout = asyncHandler(async (req, res) => {
     });
 });
 
-const refresnAccessToken = asyncHandler(async (req, res) => {
+const refreshAccessToken = asyncHandler(async (req, res) => {
   const incomingRefreshToken =
     req.cookies.refreshToken || req.body.refreshToken; // The incomingRefreshToken variable is used to store the refresh token. The refresh token is stored in the cookies. The refresh token is stored in the cookies because the refresh token is used to generate the access token. The refresh token is used to generate the access token because the access token is used to authenticate the user.
   if (!incomingRefreshToken) {
     throw new ApiError(401, "Refresh token is required");
   }
-
+  console.log(incomingRefreshToken);
   try {
     const decodedToken = jwt.verify(
       // The decodedToken variable is used to store the decoded token. The decoded token is used to verify the refresh token. The decoded token is used to verify the refresh token because the refresh token is used to generate the access token.
@@ -250,7 +249,7 @@ const refresnAccessToken = asyncHandler(async (req, res) => {
         )
       );
   } catch (error) {
-    throw new ApiError(401, error?.message || "Invalid refresh token");
+    throw new ApiError(404, error?.message || "Invalid refresh token");
   }
 });
 
@@ -363,10 +362,9 @@ const updateCoverImg = asyncHandler(async (req, res) => {
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
   const { username } = req.params; // The username variable is used to store the username of the channel. The username is passed as a parameter in the URL. The username is used to find the channel in the database. The username is used to find the channel in the database because the username is unique for each channel.
-  if (!username) {
+  if (!username?.trim()) {
     throw new ApiError(400, "username is missing");
   }
-
   const channel = await User.aggregate([
     // The aggregate() method is used to perform aggregation operations on the collection. The aggregate() method takes an array of stages as an argument. The stages are used to perform different operations on the documents. In this case, the stages are used to filter, join, and add fields to the documents. The result is stored in the channel variable.
     {
@@ -427,7 +425,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   console.log(channel);
 
   if (!channel.length) {
-    throw new ApiError(400, "channel does not exists");
+    throw new ApiError(401, "channel does not exists");
   }
 
   return res
@@ -439,7 +437,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
       $match: {
-        _id: mongoose.Types.ObjectId(req.user._id), // The match stage is used to filter the documents. The match stage takes an object as an argument. The object contains the conditions to filter the documents. In this case, the condition is the user id of the logged-in user. The user id is passed as a parameter in the URL. The user id is used to find the user in the database. The user id is used to find the user in the database because the user id is unique for each user.
+        _id: new mongoose.Types.ObjectId(req.user._id), // The match stage is used to filter the documents. The match stage takes an object as an argument. The object contains the conditions to filter the documents. In this case, the condition is the _id field of the users collection. The _id field is used to find the user by id. The id is passed as a parameter in the URL. The id is used to find the user in the database.
       },
     },
     {
@@ -495,7 +493,7 @@ export {
   userResister,
   userLogin,
   userLogout,
-  refresnAccessToken,
+  refreshAccessToken,
   changePassword,
   getCurreuntUser,
   updateUserProfile,
